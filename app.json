@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "MUKAAN_APP",
+    "slug": "MUKAAN_APP",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mukaan.mukaanapp"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      },
+      "package": "com.mukaan.mukaanapp"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "1658b438-c51d-40d0-8b9a-47124f2b1c7c"
+      }
+    },
+    "owner": "mukaan",
+    "statusBar": {
+      "style": "light",
+      "translucent": true
+    }
+  }
+}
