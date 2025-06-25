@@ -106,14 +106,30 @@ const SocialButton = ({ onPress, iconName, iconColor }) => {
   );
 };
 
-const KabelKraftButton = ({ onPress }) => (
-     <TouchableOpacity onPress={onPress} style={styles.kabelKraftButtonContainer}>
-        <Image 
-            source={require('../../assets/kabelkraft_banner.png')} 
-            style={styles.kabelKraftLogo}
-            resizeMode="contain"
-        />
+const KabelKraftBanner = ({ onPress }) => (
+  <View style={styles.kabelkraftBannerWrapper}>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
+      <Image 
+        source={require('../../assets/kabelkraft_banner.png')} 
+        style={styles.kabelKraftLogo}
+        resizeMode="contain"
+      />
     </TouchableOpacity>
+  </View>
+);
+
+const BestellButton = ({ onPress }) => (
+  <View style={styles.bestellButtonWrapper}>
+    <BlurView intensity={40} tint="light" style={styles.glassyButtonWrapper}>
+      <TouchableOpacity
+        onPress={onPress}
+        style={styles.glassyButton}
+        activeOpacity={0.85}
+      >
+        <Text style={styles.glassyButtonText}>Bestellen</Text>
+      </TouchableOpacity>
+    </BlurView>
+  </View>
 );
 
 const HomeScreen = ({ navigation }) => {
@@ -195,7 +211,7 @@ const HomeScreen = ({ navigation }) => {
 
   const renderHeader = () => (
     <>
-      <View style={[styles.header, { paddingTop: insets.top + normalize(16) }]}>
+      <View style={styles.header}>
         <Image source={require('../../assets/logo.png')} style={styles.logo} />
       </View>
       <View style={styles.socialGrid}>
@@ -205,7 +221,8 @@ const HomeScreen = ({ navigation }) => {
         <SocialButton onPress={() => handleSocialMediaPress('https://www.tiktok.com/@muhammed_kaan')} iconName="logo-tiktok" iconColor="#ffffff" />
         <SocialButton onPress={() => handleSocialMediaPress('https://whatsapp.com/channel/0029Va7JWL8CcW4sTGsJt942')} iconName="logo-whatsapp" iconColor="#25D366" />
       </View>
-      <KabelKraftButton onPress={handleKabelKraftPress} />
+      <KabelKraftBanner onPress={handleKabelKraftPress} />
+      <BestellButton onPress={handleKabelKraftPress} />
       <Text style={styles.sectionTitle}>Aktuelle Beiträge</Text>
     </>
   );
@@ -245,7 +262,7 @@ const HomeScreen = ({ navigation }) => {
             }
             onEndReached={loadMore}
             onEndReachedThreshold={0.1}
-            contentContainerStyle={styles.listContentContainer}
+            contentContainerStyle={[styles.listContentContainer, { paddingTop: insets.top + normalize(40) }]}
         />
      </View>
   );
@@ -307,17 +324,24 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
-  kabelKraftButtonContainer: {
-    marginHorizontal: normalize(16),
-    marginBottom: normalize(30),
+  kabelkraftSection: {
+    marginTop: 18,
+    marginBottom: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: normalize(10),
+  },
+  kabelkraftBannerWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    marginTop: 8,
+    marginBottom: 12,
   },
   kabelKraftLogo: {
     width: '100%',
-    height: normalize(140),
+    height: normalize(40),
     resizeMode: 'contain',
+    marginBottom: 0,
   },
   sectionTitle: {
     fontSize: normalize(24),
@@ -349,6 +373,42 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
+  },
+  glassyButtonWrapper: {
+    marginTop: 0,
+    marginBottom: 10,
+    borderRadius: 16,
+    overflow: 'hidden',
+    alignSelf: 'center',
+    width: 130,
+    elevation: 4,
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+  },
+  glassyButton: {
+    backgroundColor: 'rgba(255, 215, 0, 0.4)',
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glassyButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.10)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
+  },
+  bestellButtonWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    marginBottom: 18,
   },
 });
 

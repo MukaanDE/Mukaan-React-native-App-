@@ -14,6 +14,7 @@ import { BlurView } from 'expo-blur';
 import PostCard from '../components/PostCard';
 import AppleLoadingSpinner from '../components/AppleLoadingSpinner';
 import { fetchPostsByCategory } from '../api/wordpress';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 const scale = width / 375;
@@ -27,6 +28,7 @@ const CategoryScreen = ({ route, navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const insets = useSafeAreaInsets();
 
   const loadPosts = async (pageNum = 1, refresh = false) => {
     if (refresh) setRefreshing(true);
@@ -110,7 +112,7 @@ const CategoryScreen = ({ route, navigation }) => {
         data={posts}
         renderItem={renderPost}
         keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.listContainer}
+        contentContainerStyle={[styles.listContainer, { paddingTop: insets.top + normalize(40) }]}
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 
@@ -139,7 +141,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   listContainer: {
-    paddingTop: normalize(50),
     paddingBottom: normalize(90),
   },
   footer: {
