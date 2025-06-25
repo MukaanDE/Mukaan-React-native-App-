@@ -16,6 +16,7 @@ import RoundedContainer from '../components/RoundedContainer';
 import PostCard from '../components/PostCard';
 import SearchBar from '../components/SearchBar';
 import { searchPosts } from '../api/wordpress';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 const scale = width / 375;
@@ -26,6 +27,7 @@ const SearchScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState(null);
+  const insets = useSafeAreaInsets();
 
   const handleSearch = async (query) => {
     if (!query.trim()) {
@@ -108,7 +110,7 @@ const SearchScreen = ({ navigation }) => {
             data={posts}
             renderItem={renderPost}
             keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={styles.listContainer}
+            contentContainerStyle={[styles.listContainer, { paddingTop: insets.top + normalize(40) }]}
             showsVerticalScrollIndicator={false}
             onScrollBeginDrag={() => Keyboard.dismiss()}
           />
