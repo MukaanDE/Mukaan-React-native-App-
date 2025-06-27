@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, Image } from 'react-native';
 import PlatformIcon from './PlatformIcon';
 import RoundedContainer from './RoundedContainer';
 
@@ -24,24 +24,24 @@ const RelatedPosts = ({ posts, onPostPress }) => {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContainer}
       >
-        {posts.map((post) => (
+        {posts.map((post, idx) => (
           <TouchableOpacity
             key={post.id}
             onPress={() => onPostPress(post)}
             activeOpacity={0.8}
           >
-            <View style={styles.postCardWrapper}>
-                <RoundedContainer 
-                  style={styles.postCard}
-                  backgroundColor="rgba(0, 0, 0, 0.6)"
-                >
-                    <Text style={styles.postTitle} numberOfLines={3}>
+            <View style={[styles.postCardWrapper, idx === posts.length - 1 && styles.lastCard]}>
+              <View style={styles.postCardRow}>
+                <Image
+                  source={{ uri: post.featuredImage || 'https://via.placeholder.com/56x56.png?text=Bild' }}
+                  style={styles.thumbnail}
+                />
+                <View style={styles.textContent}>
+                  <Text style={styles.postTitle} numberOfLines={2}>
                     {post.title}
-                    </Text>
-                    <View style={styles.postFooter}>
-                        <PlatformIcon name="arrow-forward-circle" size={normalize(30)} color="#FFFFFF" />
-                    </View>
-                </RoundedContainer>
+                  </Text>
+                </View>
+              </View>
             </View>
           </TouchableOpacity>
         ))}
@@ -66,24 +66,43 @@ const styles = StyleSheet.create({
     paddingBottom: normalize(5),
   },
   postCardWrapper: {
-    borderRadius: normalize(18),
-    overflow: 'hidden',
-    marginRight: normalize(12),
-    width: width * 0.6,
-    height: width * 0.45,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 14,
+    marginRight: 14,
+    padding: 8,
+    minWidth: 210,
+    maxWidth: 240,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
   },
-  postCard: {
+  lastCard: {
+    marginRight: 16,
+  },
+  postCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  thumbnail: {
+    width: 56,
+    height: 56,
+    borderRadius: 10,
+    backgroundColor: '#222',
+    marginRight: 12,
+  },
+  textContent: {
     flex: 1,
-    justifyContent: 'space-between',
-    padding: normalize(16),
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
   },
   postTitle: {
-    fontSize: normalize(17),
+    color: '#fff',
     fontWeight: 'bold',
-    color: '#ffffff',
-    lineHeight: normalize(24),
+    fontSize: 17,
+    marginBottom: 0,
   },
   postFooter: {
     alignItems: 'flex-end',

@@ -1,11 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, useWindowDimensions } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Dimensions,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { decode } from 'html-entities';
 
 const RelatedPostCard = ({ post }) => {
   const navigation = useNavigation();
-  const { width } = useWindowDimensions();
+  const { width } = Dimensions.get('window');
   
   if (!post) {
     return null;
@@ -13,10 +20,14 @@ const RelatedPostCard = ({ post }) => {
 
   const cardWidth = width * 0.7; // 70% der Bildschirmbreite
 
+  const handlePress = () => {
+    navigation.navigate('PostDetail', { postId: post.id });
+  };
+
   return (
     <TouchableOpacity 
       style={[styles.card, { width: cardWidth }]}
-      onPress={() => navigation.push('PostDetail', { postId: post.id })}
+      onPress={handlePress}
     >
       <Image 
         source={{ uri: post.featuredImage || 'https://via.placeholder.com/300x180.png?text=Mukaan' }} 

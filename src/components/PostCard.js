@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, Animated, Platform } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, Animated } from 'react-native';
 import RoundedContainer from './RoundedContainer';
 
 const { width } = Dimensions.get('window');

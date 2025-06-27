@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Animated,
+  Platform,
 } from 'react-native';
 import PlatformIcon from '../components/PlatformIcon';
 import { BlurView } from 'expo-blur';
@@ -25,86 +26,37 @@ const scale = width / 375;
 
 const normalize = (size) => Math.round(scale * size);
 
-const SocialButton = ({ onPress, iconName, iconColor }) => {
-  const [isPressed, setIsPressed] = useState(false);
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const glowAnim = useRef(new Animated.Value(0)).current;
-
-  const handlePressIn = () => {
-    setIsPressed(true);
-    Animated.parallel([
-      Animated.timing(scaleAnim, {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(glowAnim, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: false,
-      }),
-    ]).start();
-  };
-
-  const handlePressOut = () => {
-    setIsPressed(false);
-    Animated.parallel([
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(glowAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: false,
-      }),
-    ]).start();
-  };
-
+const SocialButton = React.memo(({ onPress, iconName, iconColor }) => {
   return (
     <TouchableOpacity 
       onPress={onPress} 
       style={styles.socialButtonContainer}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      activeOpacity={1}
+      activeOpacity={0.8}
+      delayPressIn={0}
+      delayPressOut={0}
+      delayLongPress={0}
     >
-      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-        {/* Glow Effect */}
-        <Animated.View
-          style={[
-            styles.socialGlowEffect,
-            {
-              opacity: glowAnim,
-              backgroundColor: iconColor,
-            }
-          ]}
+      <BlurView 
+        intensity={40} 
+        tint="dark" 
+        style={[
+          styles.socialButton,
+          {
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 1,
+          }
+        ]}
+      >
+        <PlatformIcon 
+          name={iconName} 
+          size={normalize(30)} 
+          color={iconColor} 
+          style={styles.socialIcon}
         />
-        
-        {/* Glass Background */}
-        <BlurView 
-          intensity={isPressed ? 60 : 40} 
-          tint="dark" 
-          style={[
-            styles.socialButton,
-            {
-              borderColor: isPressed ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.1)',
-              borderWidth: isPressed ? 1.5 : 1,
-            }
-          ]}
-        >
-          <PlatformIcon 
-            name={iconName} 
-            size={normalize(30)} 
-            color={iconColor} 
-            style={styles.socialIcon}
-          />
-        </BlurView>
-      </Animated.View>
+      </BlurView>
     </TouchableOpacity>
   );
-};
+});
 
 const KabelKraftBanner = ({ onPress }) => (
   <View style={styles.kabelkraftBannerWrapper}>
@@ -118,20 +70,6 @@ const KabelKraftBanner = ({ onPress }) => (
   </View>
 );
 
-const BestellButton = ({ onPress }) => (
-  <View style={styles.bestellButtonWrapper}>
-    <BlurView intensity={40} tint="light" style={styles.glassyButtonWrapper}>
-      <TouchableOpacity
-        onPress={onPress}
-        style={styles.glassyButton}
-        activeOpacity={0.85}
-      >
-        <Text style={styles.glassyButtonText}>Bestellen</Text>
-      </TouchableOpacity>
-    </BlurView>
-  </View>
-);
-
 const HomeScreen = ({ navigation }) => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -139,6 +77,23 @@ const HomeScreen = ({ navigation }) => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const insets = useSafeAreaInsets();
+
+  // URL-Preloading für schnellere Link-Öffnung
+  useEffect(() => {
+    const preloadUrls = [
+      'https://www.instagram.com/mukaan.de/',
+      'https://youtube.com/@mukaan',
+      'https://www.twitch.tv/mukaaanTV',
+      'https://www.tiktok.com/@muhammed_kaan',
+      'https://whatsapp.com/channel/0029Va7JWL8CcW4sTGsJt942',
+      'https://kabelkraft.com/discount/MUKAAN'
+    ];
+    
+    // Preload URLs im Hintergrund
+    preloadUrls.forEach(url => {
+      Linking.canOpenURL(url).catch(() => {});
+    });
+  }, []);
 
   const loadPosts = async (pageNum = 1, refresh = false) => {
     if (refresh) {
@@ -180,52 +135,28 @@ const HomeScreen = ({ navigation }) => {
     navigation.navigate('PostDetail', { postId: post.id });
   };
 
-  const handleSocialMediaPress = async (url) => {
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        Alert.alert("Link kann nicht geöffnet werden", "Es wurde keine App gefunden, um diesen Link zu öffnen.");
-      }
-    } catch (error) {
+  const handleSocialMediaPress = (url) => {
+    Linking.openURL(url).catch(error => {
       console.error('Fehler beim Öffnen des Links:', error);
       Alert.alert('Fehler', 'Link konnte nicht geöffnet werden.');
-    }
+    });
   };
 
-  const handleKabelKraftPress = async () => {
+  const handleKabelKraftPress = () => {
     const url = 'https://kabelkraft.com/discount/MUKAAN';
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        Alert.alert("Link kann nicht geöffnet werden", "Es wurde keine App gefunden, um diesen Link zu öffnen.");
-      }
-    } catch (error) {
+    Linking.openURL(url).catch(error => {
       console.error('Fehler beim Öffnen des KabelKraft-Links:', error);
       Alert.alert('Fehler', 'Link konnte nicht geöffnet werden.');
-    }
+    });
   };
 
-  const renderHeader = () => (
-    <>
-      <View style={styles.header}>
-        <Image source={require('../../assets/logo.png')} style={styles.logo} />
-      </View>
-      <View style={styles.socialGrid}>
-        <SocialButton onPress={() => handleSocialMediaPress('https://www.instagram.com/mukaan.de/')} iconName="logo-instagram" iconColor="#E4405F" />
-        <SocialButton onPress={() => handleSocialMediaPress('https://youtube.com/@mukaan')} iconName="logo-youtube" iconColor="#FF0000" />
-        <SocialButton onPress={() => handleSocialMediaPress('https://www.twitch.tv/mukaaanTV')} iconName="logo-twitch" iconColor="#6441a5" />
-        <SocialButton onPress={() => handleSocialMediaPress('https://www.tiktok.com/@muhammed_kaan')} iconName="logo-tiktok" iconColor="#ffffff" />
-        <SocialButton onPress={() => handleSocialMediaPress('https://whatsapp.com/channel/0029Va7JWL8CcW4sTGsJt942')} iconName="logo-whatsapp" iconColor="#25D366" />
-      </View>
-      <KabelKraftBanner onPress={handleKabelKraftPress} />
-      <BestellButton onPress={handleKabelKraftPress} />
-      <Text style={styles.sectionTitle}>Aktuelle Beiträge</Text>
-    </>
-  );
+  // Direkte Link-Funktionen für maximale Geschwindigkeit
+  const openInstagram = useCallback(() => Linking.openURL('https://www.instagram.com/mukaan.de/').catch(() => {}), []);
+  const openYouTube = useCallback(() => Linking.openURL('https://youtube.com/@mukaan').catch(() => {}), []);
+  const openTwitch = useCallback(() => Linking.openURL('https://www.twitch.tv/mukaaanTV').catch(() => {}), []);
+  const openTikTok = useCallback(() => Linking.openURL('https://www.tiktok.com/@muhammed_kaan').catch(() => {}), []);
+  const openWhatsApp = useCallback(() => Linking.openURL('https://whatsapp.com/channel/0029Va7JWL8CcW4sTGsJt942').catch(() => {}), []);
+  const openKabelKraft = useCallback(() => Linking.openURL('https://kabelkraft.com/discount/MUKAAN').catch(() => {}), []);
 
   const renderFooter = () => {
     if (!loading || refreshing || !hasMore) return null;
@@ -236,10 +167,38 @@ const HomeScreen = ({ navigation }) => {
     );
   };
 
+  const renderHeader = () => (
+    <>
+      <View style={styles.header}>
+        <Image source={require('../../assets/logo.png')} style={styles.logo} />
+      </View>
+      <View style={styles.socialGrid}>
+        <SocialButton onPress={openInstagram} iconName="logo-instagram" iconColor="#E4405F" />
+        <SocialButton onPress={openYouTube} iconName="logo-youtube" iconColor="#FF0000" />
+        <SocialButton onPress={openTwitch} iconName="logo-twitch" iconColor="#6441a5" />
+        <SocialButton onPress={openTikTok} iconName="logo-tiktok" iconColor="#ffffff" />
+        <SocialButton onPress={openWhatsApp} iconName="logo-whatsapp" iconColor="#25D366" />
+      </View>
+      <View style={styles.kabelkraftHeaderContainer}>
+        <TouchableOpacity onPress={openKabelKraft} activeOpacity={0.85}>
+          <Image
+            source={require('../../assets/kabelkraft_banner.png')}
+            style={styles.kabelkraftHeaderLogo}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.kabelkraftHeaderButton} onPress={openKabelKraft} activeOpacity={0.85}>
+          <Text style={styles.kabelkraftHeaderButtonText}>Jetzt bestellen</Text>
+        </TouchableOpacity>
+      </View>
+      <Text style={styles.sectionTitle}>Aktuelle Beiträge</Text>
+    </>
+  );
+
   if (loading && posts.length === 0 && !refreshing) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Lade MUKAAN...</Text>
+        <ActivityIndicator size="large" color="#FFFFFF" />
       </SafeAreaView>
     );
   }
@@ -282,11 +241,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#000000',
   },
-  loadingText: {
-    color: '#FFFFFF',
-    fontSize: normalize(18),
-    fontWeight: '600',
-  },
   header: {
     paddingBottom: normalize(16),
     alignItems: 'center',
@@ -318,11 +272,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: normalize(18),
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
   },
   kabelkraftSection: {
     marginTop: 18,
@@ -369,10 +318,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   socialIcon: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    // Schatten entfernt für bessere Performance
   },
   glassyButtonWrapper: {
     marginTop: 0,
@@ -409,6 +355,36 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
     marginBottom: 18,
+  },
+  kabelkraftHeaderContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+    marginTop: 8,
+  },
+  kabelkraftHeaderLogo: {
+    width: 220,
+    height: 48,
+    marginBottom: 18,
+  },
+  kabelkraftHeaderButton: {
+    backgroundColor: 'rgba(178,163,105,0.8)',
+    borderRadius: 32,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    minWidth: 160,
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+  },
+  kabelkraftHeaderButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    letterSpacing: 0.5,
   },
 });
 

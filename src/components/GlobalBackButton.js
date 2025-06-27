@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, StyleSheet, Dimensions, Platform } from 'react-native';
+import { TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import PlatformIcon from './PlatformIcon';
 import RoundedContainer from './RoundedContainer';
 
