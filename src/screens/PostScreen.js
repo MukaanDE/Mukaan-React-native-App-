@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,164 +11,86 @@ import {
   Platform,
   Share,
   ScrollView,
-  Image
+  Image,
+  StatusBar,
+  Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { fetchPostById, fetchCategories, fetchRelatedPosts } from '../api/wordpress';
-import AppleLoadingSpinner from '../components/AppleLoadingSpinner';
-import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import RenderHTML from 'react-native-render-html';
+import { fetchPostById, fetchRelatedPosts } from '../api/wordpress';
 import { decode } from 'html-entities';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import RelatedPosts from '../components/RelatedPosts';
-import WebView from 'react-native-webview';
-import TableRenderer, { tableModel } from '@native-html/table-plugin';
+import RenderHTML from 'react-native-render-html';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const CACHE_PREFIX = 'post_cache_';
-const CACHE_TTL = 60 * 60 * 24; // 24 Stunden in Sekunden
+const { width } = Dimensions.get('window');
+const scale = width / 375;
+const normalize = (size) => Math.round(scale * size);
+
+const systemFonts = [...defaultSystemFonts, 'System'];
 
 const PostScreen = ({ route }) => {
   const { postId } = route.params;
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showLoadingSpinner, setShowLoadingSpinner] = useState(false);
   const [error, setError] = useState(null);
-  const [categories, setCategories] = useState([]);
   const [relatedPosts, setRelatedPosts] = useState([]);
-  const { width } = useWindowDimensions();
+  const { width: windowWidth } = useWindowDimensions();
   const navigation = useNavigation();
-  const loadingTimeoutRef = useRef(null);
   const insets = useSafeAreaInsets();
-  const imgCounter = useRef(0);
-
-  const tableCss = `
-    table {
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
-      background-color: rgba(255, 255, 255, 0.05);
-      border-collapse: separate;
-      border-spacing: 0;
-      overflow: hidden;
-      margin: 16px 0;
-    }
-    th {
-      color: #fff;
-      font-weight: 700;
-      font-size: 16px;
-      padding: 12px;
-      background-color: rgba(255, 255, 255, 0.1);
-      text-align: left;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    td {
-      color: #fff;
-      font-weight: 400;
-      font-size: 16px;
-      padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    tr:last-child td {
-      border-bottom: 0;
-    }
-  `;
-
-  const tagsStyles = useMemo(() => ({
-    img: {
-      marginVertical: 20,
-      width: '100%',
-      alignSelf: 'center',
-    },
-    p: {
-      color: '#fff',
-      fontSize: 17,
-      fontFamily: 'System',
-      fontWeight: '400',
-      lineHeight: 24,
-      textAlign: 'left',
-      marginBottom: 16,
-      marginHorizontal: 20,
-    },
-    a: {
-      color: '#7FDBFF',
-      textDecorationLine: 'underline',
-      fontSize: 17,
-      fontWeight: '500',
-      fontFamily: 'System',
-    },
-    h1: { color: '#fff', fontSize: 34, fontWeight: '700', fontFamily: 'System', marginVertical: 18, textAlign: 'center', lineHeight: 40, letterSpacing: -0.01, marginHorizontal: 20 },
-    h2: { color: '#fff', fontSize: 28, fontWeight: '700', fontFamily: 'System', marginVertical: 16, textAlign: 'center', lineHeight: 34, letterSpacing: -0.01, marginHorizontal: 20 },
-    h3: { color: '#fff', fontSize: 22, fontWeight: '600', fontFamily: 'System', marginVertical: 14, textAlign: 'center', lineHeight: 28, letterSpacing: -0.01, marginHorizontal: 20 },
-    h4: { color: '#fff', fontSize: 20, fontWeight: '600', fontFamily: 'System', marginVertical: 12, textAlign: 'center', lineHeight: 26, letterSpacing: -0.01, marginHorizontal: 20 },
-    h5: { color: '#fff', fontSize: 17, fontWeight: '600', fontFamily: 'System', marginVertical: 10, textAlign: 'center', lineHeight: 22, letterSpacing: -0.01, marginHorizontal: 20 },
-    h6: { color: '#fff', fontSize: 15, fontWeight: '600', fontFamily: 'System', marginVertical: 8, textAlign: 'center', lineHeight: 20, letterSpacing: -0.01, marginHorizontal: 20 },
-    strong: { fontWeight: '700', color: '#fff' },
-    b: { fontWeight: '700', color: '#fff' },
-    ul: { marginVertical: 16, paddingLeft: 28, marginHorizontal: 20 },
-    ol: { marginVertical: 16, paddingLeft: 28, marginHorizontal: 20 },
-    li: { fontSize: 17, color: '#fff', lineHeight: 24, marginBottom: 8, fontFamily: 'System' },
-    blockquote: { backgroundColor: 'rgba(127,219,255,0.05)', borderLeftWidth: 4, borderLeftColor: '#7FDBFF', marginVertical: 16, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 8, fontStyle: 'italic', color: '#e0e0e0', marginHorizontal: 20 },
-    code: { backgroundColor: 'rgba(20,20,20,0.8)', borderRadius: 8, padding: 8, fontFamily: 'Menlo', fontSize: 14, color: '#fff', marginHorizontal: 20 },
-  }), []);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
 
   useEffect(() => {
     const getPost = async () => {
+      setLoading(true);
+      const cacheKey = `${CACHE_PREFIX}${postId}`;
+
       try {
-        setLoading(true);
-        setShowLoadingSpinner(false);
-        
-        loadingTimeoutRef.current = setTimeout(() => {
-          setShowLoadingSpinner(true);
-        }, 2000);
-        
-        const cacheKey = `${CACHE_PREFIX}${postId}`;
         const cached = await AsyncStorage.getItem(cacheKey);
-        let cachedPost = null;
         if (cached) {
           const parsed = JSON.parse(cached);
-          const now = Math.floor(Date.now() / 1000);
-          if (parsed.timestamp && now - parsed.timestamp < CACHE_TTL) {
-            cachedPost = parsed.data;
-            setPost(cachedPost);
-            if (cachedPost.categories && cachedPost.categories.length > 0) {
-                const catIds = cachedPost.categories.map(c => c.id);
-                const fetchedRelatedPosts = await fetchRelatedPosts(cachedPost.id, catIds, 5);
-                setRelatedPosts(fetchedRelatedPosts);
-            }
+          const cacheAge = Math.floor(Date.now() / 1000) - parsed.timestamp;
+          if (cacheAge < CACHE_TTL) {
+          setPost(parsed.data);
+          if (parsed.related) {
+            setRelatedPosts(parsed.related);
+          }
             setLoading(false);
-            setShowLoadingSpinner(false);
-            if (loadingTimeoutRef.current) {
-              clearTimeout(loadingTimeoutRef.current);
-            }
-            return;
           }
         }
+      } catch (e) {
+        console.error("Fehler beim Lesen des Caches", e);
+      }
+
+      try {
         const postData = await fetchPostById(postId);
-        
         if (postData) {
+          const catIds = postData.categories?.map(c => c.id) || [];
+          const fetchedRelatedPosts = catIds.length > 0 ? await fetchRelatedPosts(postData.id, catIds, 5) : [];
+          
           setPost(postData);
+          setRelatedPosts(fetchedRelatedPosts);
+          
           await AsyncStorage.setItem(cacheKey, JSON.stringify({
             data: postData,
+            related: fetchedRelatedPosts,
             timestamp: Math.floor(Date.now() / 1000),
           }));
-          
-          if (postData.categories && postData.categories.length > 0) {
-            const categoryIds = postData.categories.map(c => c.id);
-            const fetchedRelatedPosts = await fetchRelatedPosts(postData.id, categoryIds, 5);
-            setRelatedPosts(fetchedRelatedPosts);
-          }
-        } else if (!cachedPost) {
+        } else if (!post) {
           setError('Beitrag nicht gefunden.');
         }
-        setCategories(await fetchCategories());
       } catch (e) {
-        setError('Fehler beim Laden des Beitrags.');
+        if (!post) {
+           setError('Fehler beim Laden des Beitrags.');
+        }
+        if (e.response) {
+            e.response.text().then(text => console.error("Fehlertext:", text));
+        }
+        console.error("Fehler beim Fetchen neuer Beitragsdaten", e);
       } finally {
+        if (loading) { // Nur wenn noch kein alter Cache geladen wurde
         setLoading(false);
-        setShowLoadingSpinner(false);
-        if (loadingTimeoutRef.current) {
-          clearTimeout(loadingTimeoutRef.current);
         }
       }
     };
@@ -177,256 +99,197 @@ const PostScreen = ({ route }) => {
     }
   }, [postId]);
 
-  useEffect(() => {
-    return () => {
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const onShare = async () => {
-    try {
-      await Share.share({
+  const onShare = useCallback(() => {
+    if (!post) return;
+      setScrollEnabled(false);
+      Share.share({
         message: `${post.title} - Geteilt von der MUKAAN App`,
         url: post.link,
         title: post.title
       }, {
         dialogTitle: 'Beitrag teilen'
-      });
-    } catch (error) {
-      Alert.alert('Fehler', 'Beitrag konnte nicht geteilt werden.');
-    }
-  };
+    }).finally(() => {
+      setScrollEnabled(true);
+    });
+  }, [post]);
 
-  const handleLinkPress = async (url) => {
+ const handleLinkPress = useCallback((url) => {
+    if (!url) return;
     try {
         if (url.includes('mukaan.de')) {
             const postIdMatch = url.match(/\/\?p=(\d+)/) || url.match(/\/(\d+)\//);
-            if (postIdMatch) {
-                const newPostId = parseInt(postIdMatch[1]);
+            if (postIdMatch && postIdMatch[1]) {
+                const newPostId = parseInt(postIdMatch[1], 10);
                 navigation.push('PostDetail', { postId: newPostId });
                 return;
             }
         }
-        const supported = await Linking.canOpenURL(url);
-        if (supported) {
-            await Linking.openURL(url);
-        } else {
-            Alert.alert("Link kann nicht geöffnet werden", "Es wurde keine App gefunden, um diesen Link zu öffnen.");
-        }
-    } catch (error) {
-        console.error('Fehler beim Öffnen des Links:', error);
-        Alert.alert('Fehler', 'Link konnte nicht geöffnet werden.');
+        Linking.openURL(url).catch(err => {
+            console.error('Fehler beim Öffnen des Links:', err);
+            Alert.alert('Fehler', 'Der Link konnte nicht geöffnet werden.');
+        });
+    } catch (err) {
+        console.error('Unerwarteter Fehler beim Link-Handling:', err);
+        Alert.alert('Fehler', 'Ein unerwarteter Fehler ist aufgetreten.');
     }
+  }, [navigation]);
+
+  const handleBackPress = () => {
+    navigation.goBack();
   };
   
-  const alterNode = (node) => {
-    if (node.name === 'img') {
-      imgCounter.current += 1;
-      
-      // Remove width and height attributes to allow full-width styling
-      delete node.attribs.width;
-      delete node.attribs.height;
+  const renderers = useMemo(() => {
+    const extractText = (tnode) => {
+        if (!tnode) return '';
+        if (tnode.type === 'text') return tnode.data;
+        if (tnode.children?.length) {
+            return tnode.children.map(extractText).join('');
+        }
+        return '';
+    };
 
-      const { src } = node.attribs;
-      if (src && src.startsWith('/wp-content/')) {
-        node.attribs.src = `https://mukaan.de${src}`;
-      }
+    return {
+      a: ({ tnode, style, children, ...props }) => {
+        try {
+          const href = tnode.attributes.href;
+          if (!href) {
+            return <Text style={style} {...props}>{children}</Text>;
+          }
+          
+          const classAttr = tnode.attributes.class || '';
+          const styleAttr = tnode.attributes.style || '';
+          const linkText = extractText(tnode).trim();
 
-      if (imgCounter.current > 1) {
-        node.attribs.class = `${node.attribs.class || ''} scaled-image`;
+          const isWpButton = classAttr.includes('wp-block-button__link');
+          const isElementorButton = classAttr.includes('elementor-button');
+          const isCustomStyledButton = styleAttr.includes('display: inline-block');
+          
+          const isButton = isWpButton || isElementorButton || isCustomStyledButton;
+
+          if (isButton && linkText) {
+            return (
+              <View style={{ width: '100%', alignItems: 'center', marginVertical: 8 }}>
+                <TouchableOpacity onPress={() => handleLinkPress(href)} style={styles.nativeButton} activeOpacity={0.7}>
+                  <Text style={styles.nativeButtonText}>{linkText}</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          }
+          return (
+            <Text style={style} onPress={() => handleLinkPress(href)} {...props}>
+              {linkText || children}
+            </Text>
+          );
+        } catch (e) {
+          console.error("Fehler im Link-Renderer:", e);
+          const href = tnode.attributes.href;
+          const linkText = extractText(tnode).trim();
+          return (
+             <Text style={style} onPress={() => handleLinkPress(href)} {...props}>
+              {linkText || children}
+            </Text>
+          );
+        }
       }
     }
-    return node;
-  };
+  }, [handleLinkPress]);
+  
+  const renderersProps = useMemo(() => ({
+    table: {
+      WebView
+    },
+  }), []);
 
-  const removeUnwantedText = (html) => {
-    if (!html) return '';
-    const patterns = [
-      /\*?alles hier drüber platzieren\*?/gi,
-      /diese Beiträge könnten dich auch interessieren/gi,
-      /\(?Dieser Text ist nicht sichtbar\)?/gi,
-      /nicht sichtbar/gi,
-      /ähnliche Beiträge/gi,
-      /weitere Beiträge/gi,
-      /empfohlene Beiträge/gi,
-      /<p>\s*<\/p>/gi,
-      /<div>\s*<\/div>/gi,
-    ];
-    let cleanedHtml = html;
-    patterns.forEach(pattern => {
-      cleanedHtml = cleanedHtml.replace(pattern, '');
-    });
-    return cleanedHtml;
-  };
-
-  if (loading && showLoadingSpinner) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#fff" />
-      </View>
-    );
+  if (loading && !post) {
+    return <View style={styles.loadingContainer}><ActivityIndicator size="large" color="#fff" /></View>;
   }
 
   if (error) return <View style={styles.center}><Text style={styles.errorText}>{error}</Text></View>;
   if (!post) return <View style={styles.center}><Text>Kein Beitrag zum Anzeigen.</Text></View>;
 
-  const content = removeUnwantedText(post.elementor_content || post.content || '');
+  const rawContent = post.elementor_content || post.content || '';
   
-  imgCounter.current = 0;
-
-  const classesStyles = {
-    'scaled-image': {
-      transform: [{ scale: 2.0 }],
-    }
-  };
-
-  // --- HTML Renderer-Konfiguration ---
-  const renderers = {
-    table: TableRenderer,
-  };
-
-  const customHTMLElementModels = {
-    table: tableModel,
-  };
-
-  const renderersProps = {
-    a: {
-      onPress: (event, href) => handleLinkPress(href)
-    },
-    table: {
-      WebView,
-      cssRules: tableCss
-    }
+  const source = {
+    html: `<div style="color:white; font-family: System;">${rawContent}</div>`
   };
 
   return (
     <View style={styles.container}>
-      <ScrollView 
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+       <View style={{ height: insets.top, backgroundColor: '#000', zIndex: 10 }} />
+
+      <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 30, paddingBottom: 100 }]}
+        scrollEnabled={scrollEnabled}
+        contentContainerStyle={styles.scrollContent}
       >
         <Text style={styles.title}>{decode(post.title)}</Text>
         <Text style={styles.metaInfo}>
           {new Date(post.date).toLocaleDateString('de-DE', { year: 'numeric', month: 'long', day: 'numeric' })}
         </Text>
-        
         <RenderHTML
-          contentWidth={width}
-          source={{ html: content }}
+          contentWidth={windowWidth - 30}
+          source={source}
           tagsStyles={tagsStyles}
-          alterNode={alterNode}
           renderers={renderers}
-          customHTMLElementModels={customHTMLElementModels}
-          renderersProps={renderersProps}
-          enableExperimentalPercentWidth={true}
-          classesStyles={classesStyles}
+          enableExperimentalMarginCollapsing
         />
-
-        <TouchableOpacity style={styles.shareButton} onPress={onShare}>
-          <Ionicons name="share-outline" size={20} color="#fff" style={{ marginRight: 8 }}/>
-          <Text style={styles.shareButtonText}>Beitrag teilen</Text>
+        <TouchableOpacity style={styles.shareButton} onPress={onShare} activeOpacity={0.8}>
+            <Ionicons name="share-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.shareButtonText}>Beitrag teilen</Text>
         </TouchableOpacity>
-
         <RelatedPosts posts={relatedPosts} onPostPress={(p) => navigation.push('PostDetail', { postId: p.id })} />
-
       </ScrollView>
-      <TouchableOpacity 
-        onPress={() => navigation.goBack()} 
-        style={[styles.floatingBackButton, { top: insets.top > 0 ? insets.top : 20 }]}
-      >
+      <TouchableOpacity onPress={handleBackPress} style={[styles.floatingBackButton, {top: insets.top + 30}]}>
         <Ionicons name="arrow-back" size={24} color="#fff" />
       </TouchableOpacity>
     </View>
   );
 };
 
+const tagsStyles = {
+  p: { fontFamily: 'System', color: '#fff', fontSize: 18, lineHeight: 27, marginBottom: 16, whiteSpace: 'normal' },
+  a: { fontFamily: 'System', color: '#7FDBFF', textDecorationLine: 'underline', fontWeight: '500' },
+  h1: { fontFamily: 'System', color: '#fff', fontSize: 32, fontWeight: '700', marginVertical: 16, lineHeight: 40, letterSpacing: -0.4 },
+  h2: { fontFamily: 'System', color: '#fff', fontSize: 26, fontWeight: '700', marginVertical: 16, lineHeight: 34, letterSpacing: -0.3 },
+  h3: { fontFamily: 'System', color: '#fff', fontSize: 22, fontWeight: '600', marginVertical: 16, lineHeight: 28, letterSpacing: -0.2 },
+  strong: { fontFamily: 'System', fontWeight: '700' },
+  b: { fontFamily: 'System', fontWeight: '700' },
+  ul: { marginVertical: 16 },
+  ol: { marginVertical: 16 },
+  li: { fontFamily: 'System', color: '#fff', fontSize: 18, lineHeight: 27, marginBottom: 8 },
+  blockquote: { fontFamily: 'System', backgroundColor: 'rgba(127,219,255,0.05)', borderLeftWidth: 4, borderLeftColor: '#7FDBFF', marginVertical: 16, padding: 16, borderRadius: 8, fontStyle: 'italic', color: '#e0e0e0' },
+  img: { width: '100%', height: 220, borderRadius: 12, marginVertical: 16, objectFit: 'cover' },
+};
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#000',
-  },
-  errorText: {
-    color: '#FF5252',
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    // paddingHorizontal: 20,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 8,
-    marginTop: 44, // Extra space at the top after removing padding from scrollview
-    textAlign: 'center',
-    marginHorizontal: 20,
-  },
-  metaInfo: {
-    fontSize: 14,
-    color: '#bbb',
-    marginBottom: 24,
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    marginHorizontal: 20,
-  },
-  shareButton: {
-    flexDirection: 'row',
+  container: { flex: 1, backgroundColor: '#000' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#000' },
+  errorText: { color: '#FF5252', fontSize: 16, textAlign: 'center' },
+  scrollView: { flex: 1 },
+  scrollContent: { paddingHorizontal: 15, paddingBottom: normalize(90) },
+  title: { fontSize: 32, fontWeight: 'bold', color: '#fff', marginBottom: 8, marginTop: 24, textAlign: 'center', fontFamily: 'System' },
+  metaInfo: { fontSize: 14, color: '#bbb', marginBottom: 20, textAlign: 'center', textTransform: 'uppercase', fontFamily: 'System' },
+  shareButton: { flexDirection: 'row', backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center', marginVertical: 24, alignSelf: 'center' },
+  shareButtonText: { color: '#fff', fontWeight: '600', fontSize: 16, fontFamily: 'System' },
+  floatingBackButton: { position: 'absolute', left: 20, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0, 0, 0, 0.5)', alignItems: 'center', justifyContent: 'center' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
+  nativeButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -90,
-    alignSelf: 'center',
+    marginVertical: 16,
   },
-  shareButtonText: {
+  nativeButtonText: {
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
-  },
-  floatingBackButton: {
-    position: 'absolute',
-    left: 20,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#000',
-  },
-  relatedContainer: {
-    marginTop: 20,
-    padding: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-  },
-  relatedTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 16,
+    fontFamily: 'System',
   },
 });
 
-export default PostScreen; 
+export default PostScreen;

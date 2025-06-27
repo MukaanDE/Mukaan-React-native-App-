@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,13 +8,13 @@ import {
   ActivityIndicator,
   Dimensions,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import PostCard from '../components/PostCard';
 import AppleLoadingSpinner from '../components/AppleLoadingSpinner';
-import { fetchPostsByCategory } from '../api/wordpress';
+import { fetchPostsByCategory, fetchCategories } from '../api/wordpress';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 const scale = width / 375;
