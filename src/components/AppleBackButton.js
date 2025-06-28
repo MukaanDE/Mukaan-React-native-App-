@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { TouchableOpacity, StyleSheet, Animated, Dimensions, Platform } from 'react-native';
+import { TouchableOpacity, StyleSheet, Animated, Dimensions } from 'react-native';
 import PlatformIcon from './PlatformIcon';
 import RoundedContainer from './RoundedContainer';
 
@@ -10,39 +10,41 @@ const normalize = (size) => Math.round(scale * size);
 const AppleBackButton = ({ onPress, style, show = true }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(show ? 1 : 0)).current;
-  const glowAnim = useRef(new Animated.Value(0)).current;
+  const glowOpacityAnim = useRef(new Animated.Value(0)).current;
 
   const handlePressIn = () => {
-    Animated.parallel([
-      Animated.timing(scaleAnim, {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(glowAnim, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: false,
-      }),
-    ]).start();
+    // Native Animationen (scale)
+    Animated.timing(scaleAnim, {
+      toValue: 0.95,
+      duration: 100,
+      useNativeDriver: true,
+    }).start();
+
+    // JS-basierte Animationen (glow) separat
+    Animated.timing(glowOpacityAnim, {
+      toValue: 1,
+      duration: 150,
+      useNativeDriver: false,
+    }).start();
   };
 
   const handlePressOut = () => {
-    Animated.parallel([
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(glowAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: false,
-      }),
-    ]).start();
+    // Native Animationen (scale)
+    Animated.timing(scaleAnim, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+
+    // JS-basierte Animationen (glow) separat
+    Animated.timing(glowOpacityAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
   };
 
-  const glowOpacity = glowAnim.interpolate({
+  const glowOpacity = glowOpacityAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 0.3],
   });

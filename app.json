@@ -30,10 +30,6 @@
         "projectId": "1658b438-c51d-40d0-8b9a-47124f2b1c7c"
       }
     },
-    "owner": "mukaan",
-    "statusBar": {
-      "style": "light",
-      "translucent": true
-    }
+    "owner": "mukaan"
   }
 }

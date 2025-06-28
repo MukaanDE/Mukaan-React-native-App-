@@ -29,6 +29,9 @@ const transformPostDetail = (post) => ({
   title: post.title?.rendered ? decode(post.title.rendered) : '',
   excerpt: post.excerpt?.rendered ? decode(post.excerpt.rendered) : '',
   content: post.content?.rendered || '',
+  elementor_content: post.meta?._elementor_data || post.content?.rendered || '',
+  elementor_template_id: post.meta?._elementor_template_id || null,
+  elementor_edit_mode: post.meta?._elementor_edit_mode || false,
   date: post.date,
   modified: post.modified,
   link: post.link,
@@ -87,6 +90,75 @@ export const fetchPostById = async (postId) => {
     console.error('Fehler beim Laden des Beitrags:', error);
     return null;
   }
+};
+
+// Spezielle Funktion für Elementor-Inhalte
+export const fetchPostWithElementorContent = async (postId) => {
+  try {
+    // Versuche zuerst den normalen Post-Endpoint
+    const response = await fetch(`${API_BASE_URL}/posts/${postId}?_embed`);
+    
+    if (!response.ok) throw new Error('Netzwerk-Antwort war nicht ok.');
+    const post = await response.json();
+    
+    // Transformiere den Post
+    const transformedPost = transformPostDetail(post);
+    
+    // Wenn Elementor-Daten vorhanden sind, versuche sie zu verarbeiten
+    if (transformedPost.elementor_content && transformedPost.elementor_content !== transformedPost.content) {
+      try {
+        // Elementor-Daten sind oft JSON-Strings, die HTML enthalten
+        const elementorData = JSON.parse(transformedPost.elementor_content);
+        if (Array.isArray(elementorData)) {
+          // Extrahiere HTML aus Elementor-Daten
+          const htmlContent = extractHtmlFromElementorData(elementorData);
+          if (htmlContent) {
+            transformedPost.elementor_content = htmlContent;
+          }
+        }
+      } catch (parseError) {
+        // Falls das Parsen fehlschlägt, verwende den Inhalt als HTML
+        console.log('Elementor-Daten konnten nicht geparst werden, verwende HTML-Inhalt');
+      }
+    }
+    
+    return transformedPost;
+  } catch (error) {
+    console.error('Fehler beim Laden des Elementor-Beitrags:', error);
+    return null;
+  }
+};
+
+// Hilfsfunktion zum Extrahieren von HTML aus Elementor-Daten
+const extractHtmlFromElementorData = (elementorData) => {
+  let htmlContent = '';
+  console.log('ElementorData:', elementorData);
+
+  const processElement = (element) => {
+    if (element.widgetType === 'text-editor' && element.settings?.editor) {
+      htmlContent += element.settings.editor;
+    } else if (element.widgetType === 'heading' && element.settings?.title) {
+      const level = element.settings?.header_size || 'h2';
+      htmlContent += `<${level}>${element.settings.title}</${level}>`;
+    } else if (element.widgetType === 'image' && element.settings?.image?.url) {
+      const alt = element.settings?.image?.alt || '';
+      htmlContent += `<img src="${element.settings.image.url}" alt="${alt}" />`;
+    } else if (element.widgetType === 'button' && element.settings?.text) {
+      const url = element.settings?.link?.url || '#';
+      htmlContent += `<a href="${url}" class="elementor-button">${element.settings.text}</a>`;
+    } else if (element.widgetType === 'html' && element.settings?.html) {
+      htmlContent += element.settings.html;
+    }
+    
+    // Rekursiv durch Kinder-Elemente gehen
+    if (element.elements && Array.isArray(element.elements)) {
+      element.elements.forEach(processElement);
+    }
+  };
+  
+  elementorData.forEach(processElement);
+  console.log('Extrahiertes HTML aus Elementor:', htmlContent);
+  return htmlContent;
 };
 
 export const searchPosts = async (query, page = 1, perPage = 10) => {
