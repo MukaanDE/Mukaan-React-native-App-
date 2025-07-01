@@ -7,7 +7,7 @@ const scale = width / 375;
 
 const normalize = (size) => Math.round(scale * size);
 
-const PostCard = ({ post, onPress }) => {
+const PostCard = React.memo(({ post, onPress }) => {
   const [isPressed, setIsPressed] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -102,7 +102,7 @@ const PostCard = ({ post, onPress }) => {
       </Animated.View>
     </TouchableOpacity>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

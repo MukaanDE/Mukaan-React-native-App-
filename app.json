@@ -13,7 +13,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mukaan.mukaanapp"
+      "bundleIdentifier": "com.mukaan.mukaanapp",
+      "jsEngine": "jsc"
     },
     "android": {
       "adaptiveIcon": {

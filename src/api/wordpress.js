@@ -82,12 +82,14 @@ export const fetchPostById = async (postId) => {
   try {
     const response = await fetch(`${API_BASE_URL}/posts/${postId}?_embed`);
     
-    if (!response.ok) throw new Error('Netzwerk-Antwort war nicht ok.');
+    if (!response.ok) {
+      throw new Error('Netzwerk-Antwort war nicht ok.');
+    }
     const post = await response.json();
     
     return transformPostDetail(post);
   } catch (error) {
-    console.error('Fehler beim Laden des Beitrags:', error);
+    console.error(`Kritischer Fehler in fetchPostById für postId ${postId}:`, error);
     return null;
   }
 };
@@ -132,7 +134,6 @@ export const fetchPostWithElementorContent = async (postId) => {
 // Hilfsfunktion zum Extrahieren von HTML aus Elementor-Daten
 const extractHtmlFromElementorData = (elementorData) => {
   let htmlContent = '';
-  console.log('ElementorData:', elementorData);
 
   const processElement = (element) => {
     if (element.widgetType === 'text-editor' && element.settings?.editor) {
@@ -157,7 +158,6 @@ const extractHtmlFromElementorData = (elementorData) => {
   };
   
   elementorData.forEach(processElement);
-  console.log('Extrahiertes HTML aus Elementor:', htmlContent);
   return htmlContent;
 };
 

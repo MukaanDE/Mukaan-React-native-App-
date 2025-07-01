@@ -10,7 +10,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { decode } from 'html-entities';
 
-const RelatedPostCard = ({ post }) => {
+const RelatedPostCard = React.memo(({ post }) => {
   const navigation = useNavigation();
   const { width } = Dimensions.get('window');
   
@@ -43,7 +43,7 @@ const RelatedPostCard = ({ post }) => {
       </View>
     </TouchableOpacity>
   );
-};
+});
 
 const styles = StyleSheet.create({
   card: {
