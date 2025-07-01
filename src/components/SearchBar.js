@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet, Dimensions, Text, ScrollView, Platform, Animated } from 'react-native';
 import PlatformIcon from './PlatformIcon';
 import RoundedContainer from './RoundedContainer';
+import { fetchPosts } from '../api/wordpress';
 
 const { width } = Dimensions.get('window');
 const scale = width / 375;

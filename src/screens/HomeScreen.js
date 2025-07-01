@@ -37,7 +37,7 @@ const SocialButton = React.memo(({ onPress, iconName, iconColor }) => {
       delayLongPress={0}
     >
       <BlurView 
-        intensity={40} 
+        intensity={20} 
         tint="dark" 
         style={[
           styles.socialButton,
@@ -222,6 +222,9 @@ const HomeScreen = ({ navigation }) => {
             onEndReached={loadMore}
             onEndReachedThreshold={0.1}
             contentContainerStyle={[styles.listContentContainer, { paddingTop: insets.top + normalize(40) }]}
+            initialNumToRender={5}
+            maxToRenderPerBatch={5}
+            windowSize={7}
         />
      </View>
   );

@@ -80,7 +80,7 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
     }).start();
   };
 
-  const getIconName = (routeName) => {
+const getIconName = (routeName) => {
     switch (routeName) {
       case 'Home': return 'home';
       case 'Deals': return 'pricetag';
@@ -94,7 +94,7 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
 
   return (
     <View style={styles.tabBarContainer}>
-      <BlurView intensity={95} tint="dark" style={styles.tabBar}>
+      <BlurView intensity={40} tint="dark" style={styles.tabBar}>
         <View style={styles.milkGlassOverlay} />
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
@@ -147,7 +147,7 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
                 
                 {/* Glass Background */}
                 <BlurView 
-                  intensity={isHovered ? 80 : 60} 
+                  intensity={isHovered ? 30 : 20} 
                   tint="dark" 
                   style={[
                     styles.glassBackground,
@@ -238,11 +238,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 15,
   },
   tabButton: {
     flex: 1,
@@ -277,11 +272,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
     ...Platform.select({
       ios: {
         overflow: 'hidden',
@@ -324,4 +314,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Tabs; 
+export default Tabs;
