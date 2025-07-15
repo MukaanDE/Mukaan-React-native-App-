@@ -39,9 +39,13 @@ const PostCard = React.memo(({ post, onPress }) => {
     }).start();
   };
 
+  const handlePress = React.useCallback(() => {
+    onPress(post);
+  }, [onPress, post]);
+
   return (
     <TouchableOpacity 
-      onPress={() => onPress(post)} 
+      onPress={handlePress} 
       activeOpacity={0.95}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
@@ -203,4 +207,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default PostCard; 
+export default PostCard;

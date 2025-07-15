@@ -49,14 +49,21 @@ const transformPostDetail = (post) => ({
 });
 
 export const fetchPosts = async (page = 1, perPage = 10) => {
+  const cacheKey = `posts_${page}_${perPage}`;
+  if (!global.__wpCache) global.__wpCache = {};
+  if (global.__wpCache[cacheKey]) {
+    return global.__wpCache[cacheKey];
+  }
   try {
-    const url = `${API_BASE_URL}/posts?page=${page}&per_page=${perPage}&_embed&orderby=date&order=desc`;
+    const url = `${API_BASE_URL}/posts?page=${page}&per_page=${perPage}&_embed&orderby=date&order=desc&_fields=id,title,excerpt,date,modified,link,slug,_embedded,meta`;
     const response = await fetch(url);
     
     if (!response.ok) throw new Error('Netzwerk-Antwort war nicht ok.');
     const posts = await response.json();
     
-    return posts.map(transformPostListItem);
+    const result = posts.map(transformPostListItem);
+    global.__wpCache[cacheKey] = result;
+    return result;
   } catch (error) {
     console.error('Fehler beim Laden der Beiträge:', error);
     return [];
@@ -64,14 +71,21 @@ export const fetchPosts = async (page = 1, perPage = 10) => {
 };
 
 export const fetchPostsByCategory = async (categoryId, page = 1, perPage = 10) => {
+  const cacheKey = `posts_by_category_${categoryId}_${page}_${perPage}`;
+  if (!global.__wpCache) global.__wpCache = {};
+  if (global.__wpCache[cacheKey]) {
+    return global.__wpCache[cacheKey];
+  }
   try {
-    const url = `${API_BASE_URL}/posts?categories=${categoryId}&page=${page}&per_page=${perPage}&_embed&orderby=date&order=desc`;
+    const url = `${API_BASE_URL}/posts?categories=${categoryId}&page=${page}&per_page=${perPage}&_embed&orderby=date&order=desc&_fields=id,title,excerpt,date,modified,link,slug,_embedded,meta`;
     const response = await fetch(url);
     
     if (!response.ok) throw new Error('Netzwerk-Antwort war nicht ok.');
     const posts = await response.json();
     
-    return posts.map(transformPostListItem);
+    const result = posts.map(transformPostListItem);
+    global.__wpCache[cacheKey] = result;
+    return result;
   } catch (error) {
     console.error('Fehler beim Laden der Kategorie-Beiträge:', error);
     return [];
@@ -120,7 +134,6 @@ export const fetchPostWithElementorContent = async (postId) => {
         }
       } catch (parseError) {
         // Falls das Parsen fehlschlägt, verwende den Inhalt als HTML
-        console.log('Elementor-Daten konnten nicht geparst werden, verwende HTML-Inhalt');
       }
     }
     
@@ -162,12 +175,19 @@ const extractHtmlFromElementorData = (elementorData) => {
 };
 
 export const searchPosts = async (query, page = 1, perPage = 10) => {
+  const cacheKey = `search_posts_${query}_${page}_${perPage}`;
+  if (!global.__wpCache) global.__wpCache = {};
+  if (global.__wpCache[cacheKey]) {
+    return global.__wpCache[cacheKey];
+  }
   try {
-    const url = `${API_BASE_URL}/posts?search=${encodeURIComponent(query)}&page=${page}&per_page=${perPage}&_embed&orderby=relevance`;
+    const url = `${API_BASE_URL}/posts?search=${encodeURIComponent(query)}&page=${page}&per_page=${perPage}&_embed&orderby=relevance&_fields=id,title,excerpt,date,modified,link,slug,_embedded,meta`;
     const response = await fetch(url);
     if (!response.ok) throw new Error('Netzwerk-Antwort war nicht ok.');
     const posts = await response.json();
-    return posts.map(transformPostListItem);
+    const result = posts.map(transformPostListItem);
+    global.__wpCache[cacheKey] = result;
+    return result;
   } catch (error) {
     console.error('Fehler bei der Suche:', error);
     return [];
@@ -175,13 +195,20 @@ export const searchPosts = async (query, page = 1, perPage = 10) => {
 };
 
 export const fetchRelatedPosts = async (currentPostId, categoryIds, limit = 3) => {
+  const cacheKey = `related_posts_${currentPostId}_${categoryIds.join(',')}_${limit}`;
+  if (!global.__wpCache) global.__wpCache = {};
+  if (global.__wpCache[cacheKey]) {
+    return global.__wpCache[cacheKey];
+  }
   try {
     const categoryQuery = categoryIds.map(id => `categories=${id}`).join('&');
-    const url = `${API_BASE_URL}/posts?${categoryQuery}&exclude=${currentPostId}&per_page=${limit}&_embed&orderby=date&order=desc`;
+    const url = `${API_BASE_URL}/posts?${categoryQuery}&exclude=${currentPostId}&per_page=${limit}&_embed&orderby=date&order=desc&_fields=id,title,excerpt,date,modified,link,slug,_embedded,meta`;
     const response = await fetch(url);
     if (!response.ok) throw new Error('Netzwerk-Antwort war nicht ok.');
     const posts = await response.json();
-    return posts.map(transformPostListItem);
+    const result = posts.map(transformPostListItem);
+    global.__wpCache[cacheKey] = result;
+    return result;
   } catch (error) {
     console.error('Fehler beim Laden verwandter Beiträge:', error);
     return [];

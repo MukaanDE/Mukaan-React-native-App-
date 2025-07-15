@@ -14,6 +14,7 @@ const SearchBar = ({ onSearch, placeholder = "Finde Beiträge, Tipps und mehr...
   const [isFocused, setIsFocused] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const debounceTimeout = useRef(null);
 
   // Lade dynamisch Vorschläge bei Texteingabe ab 2 Buchstaben
   useEffect(() => {
@@ -58,6 +59,10 @@ const SearchBar = ({ onSearch, placeholder = "Finde Beiträge, Tipps und mehr...
 
   const handleTextChange = (text) => {
     setQuery(text);
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    debounceTimeout.current = setTimeout(() => {
+      setShowSuggestions(text.length > 1);
+    }, 300); // 300ms Debounce
   };
 
   const handleFocus = () => {

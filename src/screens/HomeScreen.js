@@ -131,9 +131,9 @@ const HomeScreen = ({ navigation }) => {
     loadPosts(1, false);
   }, []);
 
-  const handlePostPress = (post) => {
+  const handlePostPress = useCallback((post) => {
     navigation.navigate('PostDetail', { postId: post.id });
-  };
+  }, [navigation]);
 
   const handleSocialMediaPress = (url) => {
     Linking.openURL(url).catch(error => {
@@ -391,4 +391,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HomeScreen; 
+export default HomeScreen;

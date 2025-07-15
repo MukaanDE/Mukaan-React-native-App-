@@ -223,6 +223,16 @@ const PostScreen = ({ route }) => {
   const renderersProps = useMemo(() => ({
     img: { enableExperimentalPercentWidth: true }
   }), []);
+
+  const source = useMemo(() => {
+    if (!post) {
+      return { html: '' };
+    }
+    const rawContent = post.elementor_content || post.content.rendered || '';
+    return {
+      html: `<div style=\"color:white; font-family: System;\">${rawContent}</div>`
+    };
+  }, [post]);
   
   if (loading && !post) {
     return <View style={styles.loadingContainer}><ActivityIndicator size="large" color="#fff" /></View>;
@@ -231,25 +241,21 @@ const PostScreen = ({ route }) => {
   if (error) return <View style={styles.center}><Text style={styles.errorText}>{error}</Text></View>;
   if (!post) return <View style={styles.center}><Text>Kein Beitrag zum Anzeigen.</Text></View>;
 
-  const rawContent = post.elementor_content || post.content.rendered || '';
-  
-  const source = {
-    html: `<h1 style='color:white; font-size:32px; font-weight:bold; text-align:center; margin-bottom:8px;'>${decode(post.title.rendered)}</h1><div style=\"color:white; font-family: System;\">${rawContent}</div>`
-  };
-
   return (
-    <View style={[styles.container, { paddingTop: 0 }]}> 
+    <View style={styles.container}>
       <StatusBar hidden={false} barStyle="light-content" translucent backgroundColor="transparent" />
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         scrollEnabled={scrollEnabled}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 1 }]}
       >
-        <Text style={styles.title}>{decode(post.title.rendered)}</Text>
-        <Text style={styles.metaInfo}>
-          {new Date(post.date).toLocaleDateString('de-DE', { year: 'numeric', month: 'long', day: 'numeric' })}
-        </Text>
+        <View style={[styles.headerContainer, { marginTop: insets.top + 24 }]}>
+          <Text style={styles.title}>{post.title}</Text>
+          <Text style={styles.metaInfo}>
+            {new Date(post.date).toLocaleDateString('de-DE', { year: 'numeric', month: 'long', day: 'numeric' })}
+          </Text>
+        </View>
         <RenderHTML
           contentWidth={width}
           source={source}
@@ -263,7 +269,7 @@ const PostScreen = ({ route }) => {
         </TouchableOpacity>
         <RelatedPosts posts={relatedPosts} onPostPress={(p) => navigation.push('PostDetail', { postId: p.id })} />
       </ScrollView>
-      <TouchableOpacity onPress={handleBackPress} style={[styles.floatingBackButton, { top: insets.top + 8 }]}> 
+      <TouchableOpacity onPress={handleBackPress} style={[styles.floatingBackButton, { top: insets.top + 8 }]}>
         <Ionicons name="arrow-back" size={24} color="#fff" />
       </TouchableOpacity>
     </View>
@@ -290,8 +296,16 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#000' },
   errorText: { color: '#FF5252', fontSize: 16, textAlign: 'center' },
   scrollView: { flex: 1 },
-  scrollContent: { paddingHorizontal: 15, paddingBottom: normalize(90) },
-  title: { fontSize: 32, fontWeight: 'bold', color: '#fff', marginBottom: 8, marginTop: 24, textAlign: 'center' },
+  scrollContent: { 
+    paddingHorizontal: 15, 
+    paddingBottom: normalize(90),
+    // paddingTop entfernt, wird dynamisch gesetzt
+  },
+  headerContainer: {
+    alignItems: 'center',
+    marginVertical: 24, // marginTop entfernt, damit Abstand nur über scrollContent geregelt wird
+  },
+  title: { fontSize: 32, fontWeight: 'bold', color: '#fff', marginBottom: 8, textAlign: 'center' },
   metaInfo: { fontSize: 14, color: '#bbb', marginBottom: 20, textAlign: 'center', textTransform: 'uppercase' },
   shareButton: { flexDirection: 'row', backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center', marginVertical: 24, alignSelf: 'center' },
   shareButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
