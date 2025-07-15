@@ -121,7 +121,7 @@ const PostScreen = ({ route }) => {
     if (!url) return;
     try {
         if (url.includes('mukaan.de')) {
-            const postIdMatch = url.match(/\/\?p=(\d+)/) || url.match(/\/(\d+)\//);
+            const postIdMatch = url.match(/\/?p=(\d+)/) || url.match(/\/(\d+)\//);
             if (postIdMatch && postIdMatch[1]) {
                 const newPostId = parseInt(postIdMatch[1], 10);
                 navigation.push('PostDetail', { postId: newPostId });
@@ -234,14 +234,12 @@ const PostScreen = ({ route }) => {
   const rawContent = post.elementor_content || post.content.rendered || '';
   
   const source = {
-    html: `<div style="color:white; font-family: System;">${rawContent}</div>`
+    html: `<h1 style='color:white; font-size:32px; font-weight:bold; text-align:center; margin-bottom:8px;'>${decode(post.title.rendered)}</h1><div style=\"color:white; font-family: System;\">${rawContent}</div>`
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-       <View style={{ height: insets.top, backgroundColor: '#000', zIndex: 10 }} />
-
+    <View style={[styles.container, { paddingTop: 0 }]}> 
+      <StatusBar hidden={false} barStyle="light-content" translucent backgroundColor="transparent" />
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -254,7 +252,7 @@ const PostScreen = ({ route }) => {
         </Text>
         <RenderHTML
           contentWidth={width}
-          source={{ html: rawContent }}
+          source={source}
           tagsStyles={tagsStyles}
           renderers={renderers}
           renderersProps={renderersProps}
@@ -265,7 +263,7 @@ const PostScreen = ({ route }) => {
         </TouchableOpacity>
         <RelatedPosts posts={relatedPosts} onPostPress={(p) => navigation.push('PostDetail', { postId: p.id })} />
       </ScrollView>
-      <TouchableOpacity onPress={handleBackPress} style={[styles.floatingBackButton, {top: insets.top + 30}]}>
+      <TouchableOpacity onPress={handleBackPress} style={[styles.floatingBackButton, { top: insets.top + 8 }]}> 
         <Ionicons name="arrow-back" size={24} color="#fff" />
       </TouchableOpacity>
     </View>
@@ -297,7 +295,7 @@ const styles = StyleSheet.create({
   metaInfo: { fontSize: 14, color: '#bbb', marginBottom: 20, textAlign: 'center', textTransform: 'uppercase' },
   shareButton: { flexDirection: 'row', backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center', marginVertical: 24, alignSelf: 'center' },
   shareButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  floatingBackButton: { position: 'absolute', top: 50, left: 20, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0, 0, 0, 0.5)', alignItems: 'center', justifyContent: 'center' },
+  floatingBackButton: { position: 'absolute', top: 8, left: 20, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0, 0, 0, 0.5)', alignItems: 'center', justifyContent: 'center' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
   nativeButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',

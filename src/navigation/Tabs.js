@@ -52,6 +52,13 @@ const AppsStack = () => (
   </Stack.Navigator>
 );
 
+const SearchStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="SearchMain" component={SearchScreen} />
+    <Stack.Screen name="PostDetail" component={PostScreen} />
+  </Stack.Navigator>
+);
+
 const CustomTabBar = ({ state, descriptors, navigation }) => {
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [hoverAnimations] = useState(() => 
@@ -203,7 +210,7 @@ const Tabs = () => {
       />
       <Tab.Screen 
         name="Suche" 
-        component={SearchScreen}
+        component={SearchStack}
         options={{ headerShown: false }}
       />
       <Tab.Screen 

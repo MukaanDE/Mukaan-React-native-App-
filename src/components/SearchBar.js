@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet, Dimensions, Text, ScrollView, Platform, Animated } from 'react-native';
 import PlatformIcon from './PlatformIcon';
 import RoundedContainer from './RoundedContainer';
-import { fetchPosts } from '../api/wordpress';
+import { fetchPosts, searchPosts } from '../api/wordpress';
 
 const { width } = Dimensions.get('window');
 const scale = width / 375;
@@ -15,25 +15,29 @@ const SearchBar = ({ onSearch, placeholder = "Finde Beiträge, Tipps und mehr...
   const [suggestions, setSuggestions] = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
-  // Lade Beiträge für Vorschläge beim ersten Fokus
+  // Lade dynamisch Vorschläge bei Texteingabe ab 2 Buchstaben
   useEffect(() => {
-    if (isFocused && suggestions.length === 0) {
-      loadSuggestions();
-    }
-  }, [isFocused]);
-
-  const loadSuggestions = async () => {
-    setLoadingSuggestions(true);
-    try {
-      const posts = await fetchPosts(1, 50); // Lade die neuesten 50 Beiträge
-      const titles = posts.map(post => post.title);
-      setSuggestions(titles);
-    } catch (error) {
-      console.log('Fehler beim Laden der Vorschläge:', error);
-    } finally {
-      setLoadingSuggestions(false);
-    }
-  };
+    const loadDynamicSuggestions = async () => {
+      if (query.length < 2) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+      setLoadingSuggestions(true);
+      try {
+        const results = await searchPosts(query, 1, 10); // Suche nach passenden Beiträgen
+        const titles = results.map(post => post.title);
+        setSuggestions(titles);
+        setShowSuggestions(titles.length > 0);
+      } catch (error) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    };
+    loadDynamicSuggestions();
+  }, [query]);
 
   const handleSearch = () => {
     onSearch(query.trim());
@@ -54,7 +58,6 @@ const SearchBar = ({ onSearch, placeholder = "Finde Beiträge, Tipps und mehr...
 
   const handleTextChange = (text) => {
     setQuery(text);
-    setShowSuggestions(text.length > 0);
   };
 
   const handleFocus = () => {

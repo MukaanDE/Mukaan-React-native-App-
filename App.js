@@ -21,7 +21,7 @@ const MukaanDarkTheme = {
 export default function App() {
   return (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
-      <StatusBar style="light" backgroundColor="#000" />
+      <StatusBar style="light" backgroundColor="transparent" translucent />
       <SafeAreaProvider style={{ backgroundColor: '#000' }}>
         <NavigationContainer theme={MukaanDarkTheme}>
           <Tabs />
